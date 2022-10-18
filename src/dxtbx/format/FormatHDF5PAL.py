@@ -46,6 +46,7 @@ class FormatHDF5PAL(FormatHDF5):
         frame_1 = self.get_raw_data(0)
         assert frame_1.focus()[0] == frame_1.focus()[1]
         self._binning = self._max_pixels // frame_1.focus()[0]
+        self._setup_gonio_and_scan()
 
     def get_raw_data(self, index=None):
         if index is None:
@@ -88,6 +89,34 @@ class FormatHDF5PAL(FormatHDF5):
         return self._beam_factory.simple(
             self._h5_handle[self._run]["scan_dat/photon_wavelength"][index]
         )
+
+    def _setup_gonio_and_scan(self):
+        from dxtbx.model.scan import Scan
+
+        num_images = self.get_num_images()
+        image_range = (1, num_images)
+        oscillation = (0.0, 0)
+
+        exposure_time = flex.double(num_images, 0)
+        epochs = flex.double(num_images, 0)
+
+        # Construct the model
+        self._scan_model = Scan(image_range, oscillation, exposure_time, epochs)
+        self._goniometer_instance = self._goniometer_factory.known_axis((0, 1, 0))
+
+    def _scan(self):
+        return self._scan_model
+
+    def get_scan(self, index=None):
+        if index is None:
+            return self._scan()
+        scan = self._scan()
+        if scan is not None:
+            return scan[index]
+        return scan
+
+    def get_goniometer(self, index=None):
+        return self._goniometer_instance
 
 
 if __name__ == "__main__":
