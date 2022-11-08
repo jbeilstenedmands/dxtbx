@@ -126,7 +126,7 @@ class FormatMultiImage(Format):
         format_kwargs=None,
         template=None,
         check_format=True,
-        lazy=False,
+        lazy=True,
     ):
         """
         Factory method to create an imageset
@@ -212,7 +212,7 @@ class FormatMultiImage(Format):
             else:
                 is_sequence = False
 
-        assert not (as_sequence and lazy), "No lazy support for sequences"
+        # assert not (as_sequence and lazy), "No lazy support for sequences"
 
         if single_file_indices is not None:
             assert len(single_file_indices)

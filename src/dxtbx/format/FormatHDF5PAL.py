@@ -15,6 +15,10 @@ from dxtbx.format.FormatHDF5 import FormatHDF5
 
 
 class FormatHDF5PAL(FormatHDF5):
+
+    _cached_frame_1 = None
+    _cached_n_images = {}
+
     @staticmethod
     def understand(image_file):
         with h5py.File(image_file, "r") as h5_handle:
@@ -43,8 +47,12 @@ class FormatHDF5PAL(FormatHDF5):
         # currently hardcoded to Rayonix MX225HS
         self._detector_size = 225  # mm
         self._max_pixels = 5760
-        frame_1 = self.get_raw_data(0)
-        assert frame_1.focus()[0] == frame_1.focus()[1]
+        if not FormatHDF5PAL._cached_frame_1:
+            frame_1 = self.get_raw_data(0)
+            assert frame_1.focus()[0] == frame_1.focus()[1]
+            FormatHDF5PAL._cached_frame_1 = frame_1
+        else:
+            frame_1 = FormatHDF5PAL._cached_frame_1
         self._binning = self._max_pixels // frame_1.focus()[0]
 
     def get_raw_data(self, index=None):
@@ -57,7 +65,12 @@ class FormatHDF5PAL(FormatHDF5):
         return flex.double(data.astype(np.float))
 
     def get_num_images(self):
-        return len(self._h5_handle[self._run]["scan_dat/N"][()])
+        if self._run not in FormatHDF5PAL._cached_n_images:
+            n_images = len(self._h5_handle[self._run]["scan_dat/N"][()])
+            FormatHDF5PAL._cached_n_images[self._run] = n_images
+            return n_images
+        else:
+            return FormatHDF5PAL._cached_n_images[self._run]
 
     def _detector(self):
         distance = self._h5_handle[self._run]["header/detector_0_distance"][()]
