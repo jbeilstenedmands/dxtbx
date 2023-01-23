@@ -25,7 +25,7 @@ class FormatHDF5ESRF(FormatHDF5):
         if index is None:
             index = 0
 
-        data = self._h5_handle["entry_0000"]["measurement"]["data"][index]
+        data = self._h5_handle["entry_0000"]["measurement"]["data"][index] / 478.6
         return flex.double(data.astype(float))
 
     def get_num_images(self):
