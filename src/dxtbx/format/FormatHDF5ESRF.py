@@ -50,7 +50,7 @@ class FormatHDF5ESRF(FormatHDF5):
         beam_x = 0.5 * detector_size[0]
         beam_y = 0.5 * detector_size[1]
         trusted_range = (
-            0,
+            -10,
             1e9,  # ?????
         )
 
