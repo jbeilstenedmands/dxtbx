@@ -8,9 +8,14 @@ import numpy as np
 from scitbx.array_family import flex
 
 from dxtbx.format.FormatHDF5 import FormatHDF5
+from dxtbx.format.FormatStill import FormatStill
 
 
-class FormatHDF5ESRF(FormatHDF5):
+class FormatHDF5ESRF(FormatHDF5, FormatStill):
+
+    _cached_first_image = {}
+    _cached_n_images = {}
+
     @staticmethod
     def understand(image_file):
         with h5py.File(image_file, "r") as h5_handle:
@@ -18,10 +23,21 @@ class FormatHDF5ESRF(FormatHDF5):
                 return False
         return True
 
+    def __init__(self, *args, **kwargs):
+        self.lazy = kwargs.get("lazy", True)
+        super().__init__(*args, **kwargs)
+
     def _start(self):
         super()._start()
-        self._h5_handle = h5py.File(self.get_image_file(), "r")
-        self._n_images = self._h5_handle["entry_0000"]["measurement"]["data"].shape[0]
+        image_file = self.get_image_file()
+        self._h5_handle = h5py.File(image_file, "r")
+        if image_file not in FormatHDF5ESRF._cached_n_images:
+            n_images = self._h5_handle["entry_0000"]["measurement"]["data"].shape[0]
+            FormatHDF5ESRF._cached_n_images[image_file] = n_images
+        if image_file not in FormatHDF5ESRF._cached_first_image:
+            FormatHDF5ESRF._cached_first_image[image_file] = self._h5_handle[
+                "entry_0000"
+            ]["measurement"]["data"][0]
 
     def get_raw_data(self, index=None):
         if index is None:
@@ -31,7 +47,7 @@ class FormatHDF5ESRF(FormatHDF5):
         return flex.double(data.astype(float))
 
     def get_num_images(self):
-        return self._n_images
+        return FormatHDF5ESRF._cached_n_images[self.get_image_file()]
         # return self._h5_handle["entry_0000"]["measurement"]["data"].shape[0]
 
     def get_beam(self, index=None):
@@ -47,7 +63,8 @@ class FormatHDF5ESRF(FormatHDF5):
 
     def _detector(self, index=None):
         distance = 175.22
-        image_size = self._h5_handle["entry_0000"]["measurement"]["data"][0].shape
+        first_image = FormatHDF5ESRF._cached_first_image[self.get_image_file()]
+        image_size = first_image.shape
         pixel_size = 0.075
         # detector_size = (77.8 * 2.0, 85.05 * 2.0)  # based on corner_x, corner_y
         # beam_x = 0.5 * detector_size[0]
@@ -58,9 +75,7 @@ class FormatHDF5ESRF(FormatHDF5):
             -10,  # ????? (needs to be less that zero due to pedestal subtraction)
             1e9,  # ?????
         )
-        mask_sel = (self._h5_handle["entry_0000"]["measurement"]["data"][0] == 0) & (
-            self._h5_handle["entry_0000"]["measurement"]["data"][1] == 0
-        )
+        mask_sel = first_image == 0
         mask = np.zeros(image_size, dtype=int)
         mask[mask_sel] = 1
 
