@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 
 import h5py
+import numpy as np
 
 from scitbx.array_family import flex
 
@@ -46,13 +47,22 @@ class FormatHDF5ESRF(FormatHDF5):
         distance = 175.22
         image_size = self._h5_handle["entry_0000"]["measurement"]["data"][0].shape
         pixel_size = 0.075
-        detector_size = (77.8 * 2.0, 85.05 * 2.0)  # based on corner_x, corner_y
-        beam_x = 0.5 * detector_size[0]
-        beam_y = 0.5 * detector_size[1]
+        # detector_size = (77.8 * 2.0, 85.05 * 2.0)  # based on corner_x, corner_y
+        # beam_x = 0.5 * detector_size[0]
+        # beam_y = 0.5 * detector_size[1]
+        beam_x = 78.34
+        beam_y = 85.05
         trusted_range = (
-            -10,
+            -10,  # ????? (needs to be less that zero due to pedestal subtraction)
             1e9,  # ?????
         )
+        mask_sel = (
+            self._h5_handle["entry_0000"]["measurement"]["data"][0]
+            == 0 & self._h5_handle["entry_0000"]["measurement"]["data"][1]
+            == 0
+        )
+        mask = np.zeros(image_size, dtype=int)
+        mask[mask_sel] = 1
 
         return self._detector_factory.simple(
             sensor="UNKNOWN",
@@ -63,7 +73,7 @@ class FormatHDF5ESRF(FormatHDF5):
             pixel_size=(pixel_size, pixel_size),
             image_size=(image_size[1], image_size[0]),
             trusted_range=trusted_range,
-            mask=[],
+            mask=mask,
         )
 
 
