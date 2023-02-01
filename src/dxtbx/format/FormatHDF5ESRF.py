@@ -23,10 +23,6 @@ class FormatHDF5ESRF(FormatHDF5, FormatStill):
                 return False
         return True
 
-    def __init__(self, *args, **kwargs):
-        self.lazy = kwargs.get("lazy", True)
-        super().__init__(*args, **kwargs)
-
     def _start(self):
         super()._start()
         image_file = self.get_image_file()
