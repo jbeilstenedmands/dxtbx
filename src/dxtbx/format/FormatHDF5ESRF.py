@@ -21,6 +21,7 @@ class FormatHDF5ESRF(FormatHDF5):
     def _start(self):
         super()._start()
         self._h5_handle = h5py.File(self.get_image_file(), "r")
+        self._n_images = self._h5_handle["entry_0000"]["measurement"]["data"].shape[0]
 
     def get_raw_data(self, index=None):
         if index is None:
@@ -30,7 +31,8 @@ class FormatHDF5ESRF(FormatHDF5):
         return flex.double(data.astype(float))
 
     def get_num_images(self):
-        return self._h5_handle["entry_0000"]["measurement"]["data"].shape[0]
+        return self._n_images
+        # return self._h5_handle["entry_0000"]["measurement"]["data"].shape[0]
 
     def get_beam(self, index=None):
         return self._beam(index)
@@ -56,10 +58,8 @@ class FormatHDF5ESRF(FormatHDF5):
             -10,  # ????? (needs to be less that zero due to pedestal subtraction)
             1e9,  # ?????
         )
-        mask_sel = (
-            self._h5_handle["entry_0000"]["measurement"]["data"][0]
-            == 0 & self._h5_handle["entry_0000"]["measurement"]["data"][1]
-            == 0
+        mask_sel = (self._h5_handle["entry_0000"]["measurement"]["data"][0] == 0) & (
+            self._h5_handle["entry_0000"]["measurement"]["data"][1] == 0
         )
         mask = np.zeros(image_size, dtype=int)
         mask[mask_sel] = 1
@@ -74,6 +74,17 @@ class FormatHDF5ESRF(FormatHDF5):
             image_size=(image_size[1], image_size[0]),
             trusted_range=trusted_range,
             mask=mask,
+        )
+
+    def _goniometer(self):
+        return self._goniometer_factory.known_axis((0, 1, 0))
+
+    def _scan(self):
+        return self._scan_factory.make_scan(
+            image_range=(1, self._n_images),
+            exposure_times=1.0,
+            oscillation=(0.0, 0.0),
+            epochs=list(range(self._n_images)),
         )
 
 
