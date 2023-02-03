@@ -31,9 +31,9 @@ class FormatHDF5ESRF(FormatHDF5, FormatStill):
             n_images = self._h5_handle["entry_0000"]["measurement"]["data"].shape[0]
             FormatHDF5ESRF._cached_n_images[image_file] = n_images
         if image_file not in FormatHDF5ESRF._cached_first_image:
-            FormatHDF5ESRF._cached_first_image[image_file] = self._h5_handle[
-                "entry_0000"
-            ]["measurement"]["data"][0]
+            FormatHDF5ESRF._cached_first_image[image_file] = (
+                self._h5_handle["entry_0000"]["measurement"]["data"][0] / 478.6
+            )
 
     def get_raw_data(self, index=None):
         if index is None:
