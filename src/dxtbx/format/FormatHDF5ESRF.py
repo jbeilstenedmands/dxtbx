@@ -34,7 +34,7 @@ class FormatHDF5ESRF(FormatHDF5, FormatStill):
             if len(h5_handle) != 1:
                 return False
             if "ESRF_HDF5_JF" in os.environ:
-                if os.environ["ESRF_HDF5_JF"]:
+                if os.environ["ESRF_HDF5_JF"] == "TRUE":
                     return True
         return False
 
