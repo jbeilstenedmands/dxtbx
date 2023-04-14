@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import sys
 
 import h5py
@@ -9,6 +10,17 @@ from scitbx.array_family import flex
 
 from dxtbx.format.FormatHDF5 import FormatHDF5
 from dxtbx.format.FormatStill import FormatStill
+
+# defaults from 2022
+# wavelength=1.072528
+# distance = 175.22
+# beam centre (fast, slow in mm) ~ 78.34, 85.05 (x,y) (in pixels=~1034,1139)
+# these correspond to geometry.detector.panel.origin=-78.34,85.05,-175
+
+# note, to set the wavelength, just use geometry.beam.wavelength= in dials.import
+# note, to set the distance, just use geometry.detector.distance= in dials.import
+# note, to set the distance (z) and beam centre (x,y), just use
+# geometry.detector.panel.origin=-x,y,-z  (watch out for the signs!)
 
 
 class FormatHDF5ESRF(FormatHDF5, FormatStill):
@@ -21,7 +33,10 @@ class FormatHDF5ESRF(FormatHDF5, FormatStill):
         with h5py.File(image_file, "r") as h5_handle:
             if len(h5_handle) != 1:
                 return False
-        return True
+            if "ESRF_HDF5_JF" in os.environ:
+                if os.environ["ESRF_HDF5_JF"]:
+                    return True
+        return False
 
     def _start(self):
         super()._start()
@@ -44,7 +59,6 @@ class FormatHDF5ESRF(FormatHDF5, FormatStill):
 
     def get_num_images(self):
         return FormatHDF5ESRF._cached_n_images[self.get_image_file()]
-        # return self._h5_handle["entry_0000"]["measurement"]["data"].shape[0]
 
     def get_beam(self, index=None):
         return self._beam(index)
@@ -62,9 +76,6 @@ class FormatHDF5ESRF(FormatHDF5, FormatStill):
         first_image = FormatHDF5ESRF._cached_first_image[self.get_image_file()]
         image_size = first_image.shape
         pixel_size = 0.075
-        # detector_size = (77.8 * 2.0, 85.05 * 2.0)  # based on corner_x, corner_y
-        # beam_x = 0.5 * detector_size[0]
-        # beam_y = 0.5 * detector_size[1]
         beam_x = 78.34
         beam_y = 85.05
         trusted_range = (
