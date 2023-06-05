@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from scitbx.array_family import flex
 
-from dxtbx.format.FormatNXMX import FormatNXmx
+from dxtbx.format.FormatNXmx import FormatNXmx
 
 # NOTE This is a hack for xia2.ssx to work on Swissfel NXmx converted jungfrau data.
 
@@ -16,9 +16,9 @@ class FormatNXmxStillsWithScan(FormatNXmx):
 
     def _start(self):
         super()._start()
-        self._setup_gonio_and_scan()
+        self._setup_gonio_and_scan2()
 
-    def _setup_gonio_and_scan(self):
+    def _setup_gonio_and_scan2(self):
         from dxtbx.model.scan import Scan
 
         num_images = self.get_num_images()
