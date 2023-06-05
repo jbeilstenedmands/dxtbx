@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from scitbx.array_family import flex
 
+import dxtbx.model
 from dxtbx.format.FormatNXmx import FormatNXmx
 
 # NOTE This is a hack for xia2.ssx to work on Swissfel NXmx converted jungfrau data.
@@ -16,9 +17,9 @@ class FormatNXmxStillsWithScan(FormatNXmx):
 
     def _start(self):
         super()._start()
-        self._setup_gonio_and_scan2()
+        self._setup_gonio_and_scan()
 
-    def _setup_gonio_and_scan2(self):
+    def _setup_gonio_and_scan(self):
         from dxtbx.model.scan import Scan
 
         num_images = self.get_num_images()
@@ -30,18 +31,6 @@ class FormatNXmxStillsWithScan(FormatNXmx):
 
         # Construct the model
         self._scan_model = Scan(image_range, oscillation, exposure_time, epochs)
-        self._goniometer_instance = self._goniometer_factory.known_axis((0, 1, 0))
-
-    def _scan(self):
-        return self._scan_model
-
-    def get_scan(self, index=None):
-        if index is None:
-            return self._scan()
-        scan = self._scan()
-        if scan is not None:
-            return scan[index]
-        return scan
-
-    def get_goniometer(self, index=None):
-        return self._goniometer_instance
+        self._goniometer_model = dxtbx.model.GoniometerFactory.make_goniometer(
+            (0, 1, 0), (1, 0, 0, 0, 1, 0, 0, 0, 1)
+        )
