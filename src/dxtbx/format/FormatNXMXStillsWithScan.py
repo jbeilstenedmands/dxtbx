@@ -19,6 +19,7 @@ class FormatNXmxStillsWithScan(FormatNXmx):
     """Read NXmx-flavour NeXus-format HDF5 data from PSI, cgiving stills a scan."""
 
     _detector_model = None
+    _static_mask = None
 
     def __init__(self, image_file, **kwargs):
         """Initialise the image structure from the given file."""
@@ -41,6 +42,12 @@ class FormatNXmxStillsWithScan(FormatNXmx):
             FormatNXmxStillsWithScan._detector_model = dxtbx.nexus.get_dxtbx_detector(
                 nxdetector, wavelength
             )
+        if not FormatNXmxStillsWithScan._static_mask:
+            FormatNXmxStillsWithScan._static_mask = dxtbx.nexus.get_static_mask(
+                nxdetector
+            )
+
+        self._static_mask = FormatNXmxStillsWithScan._static_mask
         self._detector_model = FormatNXmxStillsWithScan._detector_model
         # if the detector is between the sample and the source, and perpendicular
         # to the beam, then invert the distance vector, as this is probably wrong
@@ -49,7 +56,6 @@ class FormatNXmxStillsWithScan(FormatNXmx):
             self._detector_model = inverted_distance_detector(self._detector_model)
 
         self._scan_model = dxtbx.nexus.get_dxtbx_scan(nxsample, nxdetector)
-        self._static_mask = dxtbx.nexus.get_static_mask(nxdetector)
         self._bit_depth_readout = nxdetector.bit_depth_readout
 
         if self._scan_model:
