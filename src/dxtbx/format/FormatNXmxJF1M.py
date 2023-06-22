@@ -35,9 +35,14 @@ class FormatNXmxJF1M(FormatNXmxDLS):
 
     def _start(self):
         super()._start()
+
+        t0 = 0.320
+        material = "Si"
+
         for panel in self._detector_model:
             panel.set_trusted_range((TRUSTED[0], TRUSTED[1]))
-            panel.set_image_size((1066, 1030))
+            panel.set_thickness(t0)
+            panel.set_material(material)
         set_detector_distance(self._detector_model, DISTANCE)
         px_size_f, px_size_s = self._detector_model[0].get_pixel_size()
         fast_slow_beam_centre_mm = (
