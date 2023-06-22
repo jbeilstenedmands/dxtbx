@@ -29,7 +29,9 @@ class FormatNXmxJF1M(FormatNXmxDLS):
                 data = list(nxdata.values())[0]
             image_size = data.shape[1:]
             if image_size == (1066, 1030):
-                if name and name.lower() in ("i03", "i04", "i24", "vmxi"):
+                if name and any(
+                    i in name.lower() for i in ["i03", "i04", "i24", "vmxi"]
+                ):
                     return True
         return False
 
