@@ -12,7 +12,7 @@ from dxtbx.format.FormatStill import FormatStill
 
 # defaults from 2022
 # wavelength=1.072528
-# distance = 175.22
+# distance = 150.8
 # beam centre (fast, slow in mm) ~ 78.34, 85.05 (x,y) (in pixels=~1034,1139)
 # these correspond to geometry.detector.panel.origin=-78.34,85.05,-175
 
@@ -54,7 +54,7 @@ class FormatHDF5ESRFJungfrau4M(FormatHDF5, FormatStill):
         )
         self.wavelength = 1.072528
         self.detector_params = {
-            "distance": 175.22,
+            "distance": 150.8,
             "pixel_size": 0.075,
             "beam_x": 78.34,
             "beam_y": 85.05,
