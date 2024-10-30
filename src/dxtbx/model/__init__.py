@@ -746,6 +746,155 @@ class _experimentlist:
             if experiment.imageset.reader().is_single_file_reader():
                 experiment.imageset.reader().nullify_format_instance()
 
+    def from_hdf5(self, filename):
+        import h5py
+
+        handle = h5py.File(filename, "r")
+        models = handle["dxtbx"]["models"]
+        beams = []
+        for b in models["beams"].attrs.values():
+            beams.append(BeamFactory.from_dict(json.loads(b)))
+        detectors = []
+        for d in models["detectors"].attrs.values():
+            detectors.append(DetectorFactory.from_dict(json.loads(d)))
+        experiments = handle["dxtbx"]["experiments"]
+        expts = []
+        for expt_id in experiments.keys():
+            beam_id = experiments[expt_id].attrs["beam"]
+            beam = beams[beam_id]
+            det_id = experiments[expt_id].attrs["detector"]
+            detector = detectors[det_id]
+            expts.append(Experiment(identifier=expt_id, beam=beam, detector=detector))
+        elist = ExperimentList(expts)
+        print(elist)
+
+    def as_hdf5(self, filename):
+        import h5py
+
+        handle = h5py.File(filename, "w")
+        top_group = handle.create_group("dxtbx", track_order=True)
+        models_group = top_group.create_group("models", track_order=False)
+
+        def get_template(imset):
+            if imset.reader().is_single_file_reader():
+                return imset.reader().master_path()
+            else:
+                return imset.get_template()
+
+        imagesets = self.imagesets()
+        if imagesets:
+            isets_group = models_group.create_group("imagesets", track_order=True)
+            for i, iset in enumerate(imagesets):
+                # Imageset serialization follows this hack in to_dict, rather than having
+                # a simple to_dict method,
+                if isinstance(iset, ImageSequence):
+                    # FIXME_HACK
+                    template = get_template(iset)
+                    r = {
+                        "__id__": "ImageSequence",
+                        "template": template,
+                    }
+                    if iset.reader().is_single_file_reader():
+                        r["single_file_indices"] = list(iset.indices())
+                elif isinstance(iset, ImageSet):
+                    r = {
+                        "__id__": "ImageSet",
+                        "images": iset.paths(),
+                    }
+                    if iset.reader().is_single_file_reader():
+                        r["single_file_indices"] = list(iset.indices())
+                elif isinstance(iset, ImageGrid):
+                    r = {
+                        "__id__": "ImageGrid",
+                        "images": iset.paths(),
+                        "grid_size": iset.get_grid_size(),
+                    }
+                    if iset.reader().is_single_file_reader():
+                        r["single_file_indices"] = list(iset.indices())
+                else:
+                    raise TypeError(
+                        "expected ImageSet or ImageSequence, got %s" % type(iset)
+                    )
+                isets_group.attrs[f"{i}"] = json.dumps(r)
+
+        beams = self.beams()
+        if beams:
+            beams_group = models_group.create_group("beams", track_order=True)
+            for i, beam in enumerate(beams):
+                beams_group.attrs[f"{i}"] = json.dumps(beam.to_dict())
+        detectors = self.detectors()
+        if detectors:
+            detectors_group = models_group.create_group("detectors", track_order=True)
+            for i, detector in enumerate(detectors):
+                detectors_group.attrs[f"{i}"] = json.dumps(detector.to_dict())
+        goniometers = self.goniometers()
+        if goniometers:
+            goniometers_group = models_group.create_group(
+                "goniometers", track_order=True
+            )
+            for i, goniometer in enumerate(goniometers):
+                goniometers_group.attrs[f"{i}"] = json.dumps(goniometer.to_dict())
+        scans = self.scans()
+        if scans:
+            scans_group = models_group.create_group("scans", track_order=True)
+            for i, scan in enumerate(scans):
+                scans_group.attrs[f"{i}"] = json.dumps(scan.to_dict())
+        crystals = self.crystals()
+        if crystals:
+            crystals_group = models_group.create_group("crystals", track_order=True)
+            for i, c in enumerate(crystals):
+                crystals_group.attrs[f"{i}"] = json.dumps(c.to_dict())
+
+        # loop through each property, if some models exist, make a group and add the unique models
+        # for i in ["imageset", "beam", "detector", "goniometer", "scan", "crystal", "profile", "scaling_model"]:
+        # call model.create_h5_group
+
+        # this group defines the mapping to the model for each experiment (because we encourage shared models where relevant)
+        experiments_group = top_group.create_group("experiments", track_order=True)
+        for e in self:
+            # create a group for the experiment
+            experiment = experiments_group.create_group(
+                e.identifier, track_order=False
+            )  # let's have alphabetical
+            # FIXME - should we store these as attributes or datasets?
+            # imageset
+            if e.imageset:
+                this_iset = self.imagesets().index(e.imageset)
+                experiment.attrs["imageset"] = this_iset
+                # experiment.create_dataset("imageset", data=[this_iset], shape=(1,))
+            # beam
+            if e.beam:
+                this_beam = self.beams().index(e.beam)
+                experiment.attrs["beam"] = this_beam
+                # experiment.create_dataset("beam", data=[this_beam], shape=(1,))
+            if e.detector:
+                this_detector = self.detectors().index(e.detector)
+                experiment.attrs["detector"] = this_detector
+                # experiment.create_dataset("detector", data=[this_detector], shape=(1,))
+            if e.goniometer:
+                this_goniometer = self.goniometers().index(e.goniometer)
+                experiment.attrs["goniometer"] = this_goniometer
+                # experiment.create_dataset("goniometer", data=[this_goniometer], shape=(1,))
+            if e.scan:
+                this_scan = self.scans().index(e.scan)
+                experiment.attrs["scan"] = this_scan
+                # experiment.create_dataset("scan", data=[this_scan], shape=(1,))
+            if e.crystal:
+                this_crystal = self.crystals().index(e.crystal)
+                experiment.attrs["crystal"] = this_crystal
+                # experiment.create_dataset("crystal", data=[this_crystal], shape=(1,))
+            if e.profile:
+                this_profile = self.profiles().index(e.profile)
+                experiment.attrs["profile"] = this_profile
+                # experiment.create_dataset("profile", data=[this_profile], shape=(1,))
+            if e.scaling_model:
+                this_scaling = self.scaling_models().index(e.scaling_model)
+                experiment.attrs["scaling"] = this_scaling
+                # experiment.create_dataset("scaling_model", data=[this_scaling], shape=(1,))
+
+        handle.close()
+        # loop through each experiment, adding an identifier to link to the correct model for each of imageset, beam, detector etc
+
     def as_json(self, filename=None, compact=False, split=False):
         """Dump experiment list as json"""
         # Get the dictionary and get the JSON string
